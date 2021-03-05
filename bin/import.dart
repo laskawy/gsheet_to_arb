@@ -13,11 +13,13 @@ import 'package:gsheet_to_arb/gsheet_to_arb.dart';
 import 'package:gsheet_to_arb/src/config/plugin_config_manager.dart';
 import 'package:gsheet_to_arb/src/utils/log.dart';
 
+import 'dart:async' show FutureOr;
+
 void main(List<String> args) async {
   var parser = ArgParser();
 
-  bool showHelp;
-  bool createConfig;
+  late bool showHelp;
+  late bool createConfig;
 
   parser.addFlag('help',
       negatable: false,
@@ -44,14 +46,15 @@ void main(List<String> args) async {
     exit(0);
   }
 
-  final config = await configManager.getConfig();
+  final config =
+      await (configManager.getConfig() as FutureOr<GsheetToArbConfig>?);
   if (config == null) {
     Log.i(
         'Config not found - please create config first with the --create-config flag');
     exit(1);
   }
 
-  _checkAuthConfig(config.gsheet);
+  _checkAuthConfig(config.gsheet!);
 
   final gsheetToArb = GSheetToArb(config: config);
   gsheetToArb.build();
@@ -66,7 +69,7 @@ void _checkAuthConfig(GoogleSheetConfig config) {
     exit(1);
   }
 
-  final auth = config.auth;
+  final auth = config.auth!;
 
   if (auth.oauthClientId == null && auth.serviceAccountKey == null) {
     Log.i(
@@ -75,13 +78,13 @@ void _checkAuthConfig(GoogleSheetConfig config) {
   }
 
   if (auth.oauthClientId != null) {
-    if (auth.oauthClientId.clientId == placeholder ||
-        auth.oauthClientId.clientSecret == placeholder) {
+    if (auth.oauthClientId!.clientId == placeholder ||
+        auth.oauthClientId!.clientSecret == placeholder) {
       Log.i('Please use valid auth client configuration');
       exit(1);
     }
   } else if (auth.serviceAccountKey != null) {
-    if (auth.serviceAccountKey.privateKey == placeholder) {
+    if (auth.serviceAccountKey!.privateKey == placeholder) {
       Log.i('Please use valid auth server configuration');
       exit(1);
     }

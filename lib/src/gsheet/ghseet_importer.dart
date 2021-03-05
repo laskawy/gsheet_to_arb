@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:gsheet_to_arb/gsheet_to_arb.dart';
 
 import 'package:gsheet_to_arb/src/translation_document.dart';
@@ -6,14 +7,14 @@ import 'package:googleapis/sheets/v4.dart';
 import 'package:googleapis_auth/auth_io.dart';
 
 class GSheetImporter {
-  final GoogleSheetConfig config;
-  
+  final GoogleSheetConfig? config;
 
   GSheetImporter({this.config});
 
   Future<TranslationsDocument> import(String documentId) async {
     Log.i('Importing ARB from Google sheet...');
-    var authClient = await _getAuthClient(config.auth);
+    var authClient =
+        await (_getAuthClient(config!.auth!) as FutureOr<AuthClient>);
     Log.startTimeTracking();
     var sheetsApi = SheetsApi(authClient);
     var spreadsheet =
@@ -28,7 +29,7 @@ class GSheetImporter {
     return document;
   }
 
-  Future<AuthClient> _getAuthClient(AuthConfig auth) async {
+  Future<AuthClient?> _getAuthClient(AuthConfig auth) async {
     final scopes = [SheetsApi.SpreadsheetsReadonlyScope];
     var authClient;
     if (auth.oauthClientId != null) {
@@ -37,18 +38,18 @@ class GSheetImporter {
             'Please go to the following URL and grant Google Spreadsheet access:\n$url\n');
       }
 
-      final client = auth.oauthClientId;
+      final client = auth.oauthClientId!;
 
       if (client.clientId == null || client.clientSecret == null) {
         throw Exception('Auth client config is invalid');
       }
 
-      var id = ClientId(client.clientId, client.clientSecret);
+      var id = ClientId(client.clientId!, client.clientSecret!);
       authClient = await clientViaUserConsent(id, scopes, clientAuthPrompt);
     } else if (auth.serviceAccountKey != null) {
-      final service = auth.serviceAccountKey;
-      var credentials = ServiceAccountCredentials(service.clientEmail,
-          ClientId(service.clientId, null), service.privateKey);
+      final service = auth.serviceAccountKey!;
+      var credentials = ServiceAccountCredentials(service.clientEmail!,
+          ClientId(service.clientId!, null), service.privateKey!);
       authClient = await clientViaServiceAccount(credentials, scopes);
     }
     return authClient;
@@ -63,8 +64,8 @@ class GSheetImporter {
     final languages = <String>[];
     final items = <TranslationRow>[];
 
-    var firstLanguageColumn = config.sheetColumns.first_language_key;
-    var firstTranslationsRow = config.sheetRows.first_translation_row;
+    var firstLanguageColumn = config!.sheetColumns!.first_language_key;
+    var firstTranslationsRow = config!.sheetRows!.first_translation_row;
 
     var currentCategory = '';
 
@@ -72,7 +73,7 @@ class GSheetImporter {
         column < headerValues.length;
         column++) {
       //Stop parsing on first empty language code
-      if(headerValues[column].formattedValue == null) {
+      if (headerValues[column].formattedValue == null) {
         break;
       }
       final language = headerValues[column].formattedValue;
@@ -85,24 +86,24 @@ class GSheetImporter {
       var languages = row.values;
 
       //Skip empty rows
-      if(languages == null) {
+      if (languages == null) {
         continue;
       }
 
-      var key = languages[config.sheetColumns.key].formattedValue;
+      var key = languages[config!.sheetColumns!.key].formattedValue;
 
       //Skip rows with missing key value
-      if(key == null) {
+      if (key == null) {
         continue;
       }
 
-      if (key.startsWith(config.categoryPrefix)) {
-        currentCategory = key.substring(config.categoryPrefix.length);
+      if (key.startsWith(config!.categoryPrefix!)) {
+        currentCategory = key.substring(config!.categoryPrefix!.length);
         continue;
       }
 
       final description =
-          languages[config.sheetColumns.description].formattedValue ?? '';
+          languages[config!.sheetColumns!.description].formattedValue ?? '';
 
       final values = row.values
           .sublist(firstLanguageColumn, row.values.length)
